@@ -116,7 +116,7 @@ namespace bluefox3
       }
       else
       {
-        auto encoding = pixelFormatToEncoding(request_ptr->imagePixelFormat);
+        encoding = pixelFormatToEncoding(request_ptr->imagePixelFormat);
       }
       sensor_msgs::Image image_msg;
       sensor_msgs::fillImage(image_msg, encoding,
