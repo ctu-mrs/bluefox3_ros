@@ -74,6 +74,8 @@ namespace bluefox3
 
     private:
       void printDevices();
+      std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
+      std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
 
     public:
       void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);

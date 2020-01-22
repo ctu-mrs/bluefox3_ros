@@ -5,10 +5,10 @@ namespace bluefox3
 
   /* pixelFormatToEncoding() function //{ */
   
-  std::string pixelFormatToEncoding(const TImageBufferPixelFormat& pixel_format)
+  std::string Bluefox3::pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format)
   {
     std::string ret = "unknown";
-    switch (pixel_format)
+    switch (pixel_format.read())
     {
       case ibpfMono8:
         ret = sensor_msgs::image_encodings::MONO8;
@@ -37,6 +37,7 @@ namespace bluefox3
         ret = sensor_msgs::image_encodings::RGB16;
         break;
       default:
+        ROS_ERROR_STREAM_THROTTLE(1.0, "[" << m_node_name << "]: Unknown pixel format: '" << pixel_format << "'");
         break;
     }
     return ret;
@@ -46,7 +47,7 @@ namespace bluefox3
 
   /* BayerPatternToEncoding() function //{ */
   
-  std::string BayerPatternToEncoding(const TBayerMosaicParity& bayer_pattern, int bytes_per_pixel)
+  std::string Bluefox3::bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel)
   {
     if (bytes_per_pixel == 1)
     {
@@ -61,7 +62,7 @@ namespace bluefox3
         case bmpBG:
           return sensor_msgs::image_encodings::BAYER_BGGR8;
         default:
-          return sensor_msgs::image_encodings::MONO8;
+          ROS_ERROR_STREAM_THROTTLE(1.0, "[" << m_node_name << "]: Unknown bayer pattern: '" << bayer_pattern << "'");
       }
     }
     else if (bytes_per_pixel == 2)
@@ -76,7 +77,7 @@ namespace bluefox3
         case bmpBG:
           return sensor_msgs::image_encodings::BAYER_BGGR16;
         default:
-          return sensor_msgs::image_encodings::MONO16;
+          ROS_ERROR_STREAM_THROTTLE(1.0, "[" << m_node_name << "]: Unknown bayer pattern: '" << bayer_pattern << "'");
       }
     }
     return "unknownBayer";
@@ -106,16 +107,16 @@ namespace bluefox3
       const auto imstep = request_ptr->imageLinePitch.read();
 
       std::string encoding;
-      const auto bayer_mosaic_parity = request_ptr->imageBayerMosaicParity.read();
-      if (bayer_mosaic_parity != bmpUndefined)
+      const auto bayer_mosaic_parity = request_ptr->imageBayerMosaicParity;
+      if (bayer_mosaic_parity.read() != bmpUndefined)
       {
         // Bayer pattern
         const auto bytes_per_pixel = request_ptr->imageBytesPerPixel.read();
-        encoding = BayerPatternToEncoding(bayer_mosaic_parity, bytes_per_pixel);
+        encoding = bayerPatternToEncoding(bayer_mosaic_parity, bytes_per_pixel);
       }
       else
       {
-        auto encoding = pixelFormatToEncoding(request_ptr->imagePixelFormat.read());
+        auto encoding = pixelFormatToEncoding(request_ptr->imagePixelFormat);
       }
       sensor_msgs::Image image_msg;
       sensor_msgs::fillImage(image_msg, encoding,
