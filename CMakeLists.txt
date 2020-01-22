@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   dynamic_reconfigure
   image_transport
+  camera_info_manager 
   sensor_msgs
   mrs_lib
   )
@@ -26,7 +27,7 @@ generate_dynamic_reconfigure_options(
 catkin_package(
   INCLUDE_DIRS include ${mvIMPACT_Acquire_INCLUDE_DIRS}
   LIBRARIES bluefox3 ${mvIMPACT_Acquire_LIBRARIES}
-  CATKIN_DEPENDS
+  CATKIN_DEPENDS camera_info_manager dynamic_reconfigure image_transport roscpp sensor_msgs mrs_lib
   #  DEPENDS system_lib
   )
 
