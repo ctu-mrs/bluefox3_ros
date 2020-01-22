@@ -151,9 +151,8 @@ namespace bluefox3
       return;
     }
     ROS_INFO("[%s]: Listing all available devices:", m_node_name.c_str());
-    std::cout << "\t#\tID\tfam\tprod\tser" << std::endl;
     // show all devices
-    for(unsigned int i = 0; i < m_devMgr.deviceCount(); i++ )
+    for (unsigned int i = 0; i < m_devMgr.deviceCount(); i++)
       std::cout << "\t" << i << "\t" << (m_devMgr[i])->deviceID << "\t" << (m_devMgr[i])->family << "\t" << (m_devMgr[i])->product << "\t" << (m_devMgr[i])->serial << std::endl;
   }
   //}

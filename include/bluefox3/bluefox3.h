@@ -57,6 +57,7 @@ namespace bluefox3
       Bluefox3() : m_node_name("Bluefox3") {};
       ~Bluefox3();
       virtual void onInit();
+      void printDevices();
 
     private:
       const std::string m_node_name;
@@ -73,7 +74,6 @@ namespace bluefox3
       std::shared_ptr<camera_info_manager::CameraInfoManager> cinfoMgr_ptr;
 
     private:
-      void printDevices();
       std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
       std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
 

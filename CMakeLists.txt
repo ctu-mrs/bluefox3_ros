@@ -44,7 +44,7 @@ include_directories(
   ${mvIMPACT_Acquire_INCLUDE_DIRS}
   )
 
-## Declare a C++ executable
+## Declare a C++ library
 add_library(Bluefox3
   src/bluefox3.cpp
   )
@@ -53,8 +53,18 @@ add_dependencies(Bluefox3
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${mvIMPACT_Acquire_EXPORTED_TARGETS}
   )
+
+## Declare a C++ executable
+add_executable(bluefox3_list_cameras
+  src/list_devices.cpp
+  )
+add_dependencies(bluefox3_list_cameras
+  ${catkin_EXPORTED_TARGETS}
+  ${${PROJECT_NAME}_EXPORTED_TARGETS}
+  ${mvIMPACT_Acquire_EXPORTED_TARGETS}
+  )
 ## Specify libraries to link a library or executable target against
-target_link_libraries(Bluefox3
+target_link_libraries(bluefox3_list_cameras
   ${catkin_LIBRARIES}
   ${mvIMPACT_Acquire_LIBRARIES}
   )
