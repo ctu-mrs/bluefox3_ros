@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+
+  <name>bluefox3</name>
+  <version>1.0.0</version>
+  <description>Driver for mvBlueFOX3 cameras</description>
+
+  <author email="vrbamato@fel.cvut.cz">Matouš Vrba</author>
+  <maintainer email="vrbamato@fel.cvut.cz">Matouš Vrba</maintainer>
+
+  <license>MIT</license>
+
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <depend>sensor_msgs</depend>
+  <depend>roscpp</depend>
+  <depend>nodelet</depend>
+  <depend>image_transport</depend>
+  <depend>mvIMPACT_Acquire</depend>
+
+  <export>
+    <nodelet plugin="${prefix}/bluefox3.xml" />
+  </export>
+
+</package>

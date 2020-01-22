@@ -1,0 +1,22 @@
+<launch>
+
+  <arg name="uav_name" default="$(optenv UAV_NAME uav1)"/>
+  <arg name="debug" default="false" />
+  <arg name="print_debug" default="true" />
+
+  <arg unless="$(arg debug)" name="launch_prefix" value=""/>
+  <arg     if="$(arg debug)" name="launch_prefix" value="debug_roslaunch"/>
+
+  <group if="$(arg print_debug)">
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find balloon_filter)/config/rosconsole/debug.conf"/>
+</group>
+  <group ns="$(arg uav_name)">
+
+    <node pkg="nodelet" type="nodelet" name="bluefox3" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
+      <rosparam file="$(find bluefox3)/config/bluefox3_params.yaml" />
+    </node>
+
+  </group>
+
+</launch>
+
