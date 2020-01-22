@@ -89,11 +89,12 @@ namespace bluefox3
 
   void Bluefox3::imageCallback(std::shared_ptr<Request> request_ptr, std::shared_ptr<ThreadParameter> threadParameter_ptr)
   {
+    const ros::Time cbk_time = ros::Time::now();
     threadParameter_ptr->requestsCaptured++;
     // display some statistical information every 100th image
+    const Statistics& s = threadParameter_ptr->statistics;
     if(threadParameter_ptr->requestsCaptured % 100 == 0)
     {
-      const Statistics& s = threadParameter_ptr->statistics;
       std::cout << "Info from " << threadParameter_ptr->cameraDevice_ptr->serial.read()
                 << ": " << s.framesPerSecond.name() << ": " << s.framesPerSecond.readS()
                 << ", " << s.errorCount.name() << ": " << s.errorCount.readS()
@@ -123,9 +124,15 @@ namespace bluefox3
                              imh, imw,
                              imstep,
                              imdata);
+      const ros::Time stamp = cbk_time - ros::Duration(s.captureTime_s.read());
+      image_msg.header.stamp = stamp;
+      image_msg.header.frame_id = m_frame_id;
+
+      sensor_msgs::CameraInfo cinfo_msg = cinfoMgr_ptr->getCameraInfo();
+      cinfo_msg.header = image_msg.header;
 
       std::scoped_lock lck(m_pub_mtx);
-      m_pub.publish(image_msg, cinfoMgr_ptr->getCameraInfo());
+      m_pub.publish(image_msg, cinfo_msg);
     }
     else
     {
@@ -175,6 +182,7 @@ namespace bluefox3
     const auto camera_name = pl.load_param2<std::string>("camera_name");
     const auto calib_url = pl.load_param2<std::string>("calib_url");
     cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
+    m_frame_id = pl.load_param2<std::string>("frame_id");
     
     if (!pl.loaded_successfully())
     {

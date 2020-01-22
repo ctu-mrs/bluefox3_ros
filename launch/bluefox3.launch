@@ -1,21 +1,34 @@
 <launch>
 
-  <arg name="uav_name" default="$(optenv UAV_NAME uav1)"/>
+  <arg name="camera_serial" default="$(arg serial)"/>
+  <arg name="camera_name" default="bluefox3_$(arg serial)"/>
+  <arg name="frame_id" default="$(arg camera_name)"/>
+  <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
+
   <arg name="debug" default="false" />
-  <arg name="print_debug" default="true" />
 
   <arg unless="$(arg debug)" name="launch_prefix" value=""/>
   <arg     if="$(arg debug)" name="launch_prefix" value="debug_roslaunch"/>
 
-  <group if="$(arg print_debug)">
-  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find balloon_filter)/config/rosconsole/debug.conf"/>
-</group>
-  <group ns="$(arg uav_name)">
+  <node pkg="nodelet" type="nodelet" name="$(arg camera)" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
 
-    <node pkg="nodelet" type="nodelet" name="bluefox3" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
-      <rosparam file="$(find bluefox3)/config/bluefox3_params.yaml" />
-    </node>
+    <param name="camera_serial" type="string" value="$(arg serial)"/>
+    <param name="camera_name" type="string" value="$(arg camera_name)"/>
+    <param name="frame_id" type="string" value="$(arg frame_id)"/>
+    <param name="calib_url" type="string" value="$(arg calib_url)"/>
 
+    <remap from="~debug_image" to="~debug_image" />
+    <remap from="~detected_objects_pcl" to="~detected_balls_pcl" />
+
+  </node>
+
+  <!-- Disable publishing of image transport topics -->
+  <group ns="image_raw">
+    <rosparam param="disable_pub_plugins">
+  - 'image_transport/compressedDepth'
+  - 'image_transport/theora'
+  - 'image_transport/h264'
+    </rosparam>
   </group>
 
 </launch>

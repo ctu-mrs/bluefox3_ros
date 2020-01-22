@@ -88,6 +88,8 @@ namespace bluefox3
 
       /* Parameters, loaded from ROS //{ */
 
+      std::string m_frame_id;
+
       //}
 
   };
