@@ -3,22 +3,86 @@
 namespace bluefox3
 {
 
-  /* printDevices() method //{ */
-  void Bluefox3::printDevices()
+  /* pixelFormatToEncoding() function //{ */
+  
+  std::string pixelFormatToEncoding(const TImageBufferPixelFormat& pixel_format)
   {
-    if (m_devMgr.deviceCount() == 0)
+    std::string ret = "unknown";
+    switch (pixel_format)
     {
-      ROS_INFO("[%s]: No devices found!", m_node_name.c_str());
-      return;
+      case ibpfMono8:
+        ret = sensor_msgs::image_encodings::MONO8;
+        break;
+      case ibpfMono10:
+      case ibpfMono12:
+      case ibpfMono14:
+      case ibpfMono16:
+        ret = sensor_msgs::image_encodings::MONO16;
+        break;
+      case ibpfMono32:
+        ret = sensor_msgs::image_encodings::TYPE_32FC1;
+        break;
+      case ibpfBGR888Packed:
+        ret = sensor_msgs::image_encodings::BGR8;
+      case ibpfRGB888Packed:
+        ret = sensor_msgs::image_encodings::RGB8;
+        break;
+      case ibpfRGBx888Packed:
+        ret = sensor_msgs::image_encodings::RGBA8;
+        break;
+      case ibpfRGB101010Packed:
+      case ibpfRGB121212Packed:
+      case ibpfRGB141414Packed:
+      case ibpfRGB161616Packed:
+        ret = sensor_msgs::image_encodings::RGB16;
+        break;
+      default:
+        break;
     }
-    ROS_INFO("[%s]: Listing all available devices:", m_node_name.c_str());
-    std::cout << "\t#\tID\tfam\tprod\tser" << std::endl;
-    // show all devices
-    for(unsigned int i = 0; i < m_devMgr.deviceCount(); i++ )
-      std::cout << "\t" << i << "\t" << (m_devMgr[i])->deviceID << "\t" << (m_devMgr[i])->family << "\t" << (m_devMgr[i])->product << "\t" << (m_devMgr[i])->serial << std::endl;
+    return ret;
   }
+  
   //}
 
+  /* BayerPatternToEncoding() function //{ */
+  
+  std::string BayerPatternToEncoding(const TBayerMosaicParity& bayer_pattern, int bytes_per_pixel)
+  {
+    if (bytes_per_pixel == 1)
+    {
+      switch (bayer_pattern)
+      {
+        case bmpRG:
+          return sensor_msgs::image_encodings::BAYER_RGGB8;
+        case bmpGB:
+          return sensor_msgs::image_encodings::BAYER_GBRG8;
+        case bmpGR:
+          return sensor_msgs::image_encodings::BAYER_GRBG8;
+        case bmpBG:
+          return sensor_msgs::image_encodings::BAYER_BGGR8;
+        default:
+          return sensor_msgs::image_encodings::MONO8;
+      }
+    }
+    else if (bytes_per_pixel == 2)
+    {
+      switch (bayer_pattern) {
+        case bmpRG:
+          return sensor_msgs::image_encodings::BAYER_RGGB16;
+        case bmpGB:
+          return sensor_msgs::image_encodings::BAYER_GBRG16;
+        case bmpGR:
+          return sensor_msgs::image_encodings::BAYER_GRBG16;
+        case bmpBG:
+          return sensor_msgs::image_encodings::BAYER_BGGR16;
+        default:
+          return sensor_msgs::image_encodings::MONO16;
+      }
+    }
+    return "unknownBayer";
+  }
+  
+  //}
 
   /* imageCallback() method //{ */
 
@@ -36,14 +100,54 @@ namespace bluefox3
     }
     if (request_ptr->isOK())
     {
-      std::cout << "Image captured: " << request_ptr->imageOffsetX.read() << "x" << request_ptr->imageOffsetY.read() << "@" << request_ptr->imageWidth.read() << "x" << request_ptr->imageHeight.read() << std::endl;
+      const auto imw = request_ptr->imageWidth.read();
+      const auto imh = request_ptr->imageHeight.read();
+      const auto imdata = request_ptr->imageData.read();
+      const auto imstep = request_ptr->imageLinePitch.read();
+
+      std::string encoding;
+      const auto bayer_mosaic_parity = request_ptr->imageBayerMosaicParity.read();
+      if (bayer_mosaic_parity != bmpUndefined)
+      {
+        // Bayer pattern
+        const auto bytes_per_pixel = request_ptr->imageBytesPerPixel.read();
+        encoding = BayerPatternToEncoding(bayer_mosaic_parity, bytes_per_pixel);
+      }
+      else
+      {
+        auto encoding = pixelFormatToEncoding(request_ptr->imagePixelFormat.read());
+      }
+      sensor_msgs::Image image_msg;
+      sensor_msgs::fillImage(image_msg, encoding,
+                             imh, imw,
+                             imstep,
+                             imdata);
+
+      std::scoped_lock lck(m_pub_mtx);
+      m_pub.publish(image_msg, cinfoMgr_ptr->getCameraInfo());
     }
     else
     {
-      std::cout << "Error: " << request_ptr->requestResult.readS() << std::endl;
+      ROS_ERROR_STREAM_THROTTLE(1.0, "[" << m_node_name.c_str() << "]: Error capturing image: " << request_ptr->requestResult.readS());
     }
   }
 
+  //}
+
+  /* printDevices() method //{ */
+  void Bluefox3::printDevices()
+  {
+    if (m_devMgr.deviceCount() == 0)
+    {
+      ROS_INFO("[%s]: No devices found!", m_node_name.c_str());
+      return;
+    }
+    ROS_INFO("[%s]: Listing all available devices:", m_node_name.c_str());
+    std::cout << "\t#\tID\tfam\tprod\tser" << std::endl;
+    // show all devices
+    for(unsigned int i = 0; i < m_devMgr.deviceCount(); i++ )
+      std::cout << "\t" << i << "\t" << (m_devMgr[i])->deviceID << "\t" << (m_devMgr[i])->family << "\t" << (m_devMgr[i])->product << "\t" << (m_devMgr[i])->serial << std::endl;
+  }
   //}
 
   /* onInit() //{ */
@@ -66,7 +170,10 @@ namespace bluefox3
     
     mrs_lib::ParamLoader pl(nh, m_node_name);
     
-    const std::string camera_serial = pl.load_param2<std::string>("camera_serial");
+    const auto camera_serial = pl.load_param2<std::string>("camera_serial");
+    const auto camera_name = pl.load_param2<std::string>("camera_name");
+    const auto calib_url = pl.load_param2<std::string>("calib_url");
+    cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
     
     if (!pl.loaded_successfully())
     {
@@ -79,7 +186,7 @@ namespace bluefox3
     /* initialize publishers //{ */
     
     image_transport::ImageTransport it(nh);
-    m_pub_output = it.advertise("image_raw", 5);
+    m_pub = it.advertiseCamera("image_raw", 5);
     
     //}
 

@@ -8,9 +8,13 @@
 #include <ros/package.h>
 #include <nodelet/nodelet.h>
 #include <image_transport/image_transport.h>
+#include <sensor_msgs/image_encodings.h>
+#include <sensor_msgs/fill_image.h>
+#include <camera_info_manager/camera_info_manager.h>
 
 // Msgs
 #include <sensor_msgs/Image.h>
+#include <sensor_msgs/CameraInfo.h>
 
 // MRS stuff
 #include <mrs_lib/ParamLoader.h>
@@ -64,6 +68,11 @@ namespace bluefox3
       std::shared_ptr<helper::RequestProvider> requestProvider_ptr;
 
     private:
+      std::mutex m_pub_mtx;
+      image_transport::CameraPublisher m_pub;
+      std::shared_ptr<camera_info_manager::CameraInfoManager> cinfoMgr_ptr;
+
+    private:
       void printDevices();
 
     public:
@@ -76,13 +85,6 @@ namespace bluefox3
       // --------------------------------------------------------------
 
       /* Parameters, loaded from ROS //{ */
-
-      //}
-
-      /* ROS related variables (subscribers, timers etc.) //{ */
-
-      image_transport::Publisher m_pub_output;
-      /* std::unique_ptr<drmgr_t> m_drmgr_ptr; */
 
       //}
 
