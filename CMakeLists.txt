@@ -53,6 +53,11 @@ add_dependencies(Bluefox3
   ${${PROJECT_NAME}_EXPORTED_TARGETS}
   ${mvIMPACT_Acquire_EXPORTED_TARGETS}
   )
+## Specify libraries to link a library or executable target against
+target_link_libraries(Bluefox3
+  ${catkin_LIBRARIES}
+  ${mvIMPACT_Acquire_LIBRARIES}
+  )
 
 ## Declare a C++ executable
 add_executable(bluefox3_list_cameras

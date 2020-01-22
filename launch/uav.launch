@@ -1,6 +1,6 @@
 <launch>
 
-  <arg name="camera_serial" default="$(env bluefox)"/>
+  <arg name="camera_serial" default="$(env bluefox3)"/>
   <arg name="camera_name" default="bluefox3_$(arg serial)"/>
   <arg name="frame_id" default="$(arg camera_name)"/>
   <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
