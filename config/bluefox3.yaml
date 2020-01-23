@@ -1,9 +1,9 @@
 imgproc:
   mirror:
-    mode: mmTopDown
+    mode: mmTopDownAndLeftRight
 
   white_balance:
-    mode: wbpBlueSky
+    mode: wbpUser1
     gain:
       r: 1.0
       g: 1.0

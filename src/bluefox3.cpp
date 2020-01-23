@@ -1,3 +1,4 @@
+// clang: MatousFormat
 #include <bluefox3/bluefox3.h>
 
 namespace bluefox3
@@ -237,7 +238,7 @@ namespace bluefox3
 
   /* writeAndReadProperty() method //{ */
   template <typename PropertyType, typename ValueType>
-  void writeAndReadProperty(const PropertyType& prop, ValueType& value)
+  void Bluefox3::writeAndReadProperty(const PropertyType& prop, ValueType& value)
   {
     writeProperty(prop, value);
     readProperty(prop, value);
@@ -253,8 +254,17 @@ namespace bluefox3
     {"mmTopDownAndLeftRight", mmTopDownAndLeftRight},
   };
 
-  void Bluefox3::setMirrorMode(const TMirrorMode mirror_mode)
+  void Bluefox3::setMirrorMode(const std::string& mirror_mode_name)
   {
+    if (!str2mm.count(mirror_mode_name))
+    {
+      ROS_ERROR("[%s]: Invalid mirror mode selected! Valid values are:", m_node_name.c_str());
+      for (const auto& kv : str2mm)
+        std::cout << "\t" << kv.first << std::endl;
+      ros::shutdown();
+      return;
+    }
+    const TMirrorMode mirror_mode = str2mm.at(mirror_mode_name);
     writeProperty(m_imgProc_ptr->mirrorModeGlobal, mirror_mode);
   }
   //}
@@ -293,10 +303,6 @@ namespace bluefox3
 
   void Bluefox3::setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain)
   {
-    // Put white balance as unavailable if it's not a color camera
-    if (m_bfxInfo_ptr->sensorColorMode.read() <= iscmMono)
-      return;
-
     switch (wbp)
     {
       case wbpTungsten:
@@ -317,14 +323,20 @@ namespace bluefox3
         }
         writeProperty(m_imgProc_ptr->whiteBalance, wbp);
         auto wbp_set = m_imgProc_ptr->getWBUserSetting(0);
-        writeAndReadProperty(wbp_set.redGain, r_gain);
-        writeAndReadProperty(wbp_set.greenGain, g_gain);
-        writeAndReadProperty(wbp_set.blueGain, b_gain);
+        writeProperty(wbp_set.redGain, r_gain);
+        writeProperty(wbp_set.greenGain, g_gain);
+        writeProperty(wbp_set.blueGain, b_gain);
       }
       break;
     }
   }
   //}
+
+  void Bluefox3::dynRecCallback(const bluefox3::Bluefox3Config &cfg, [[maybe_unused]] uint32_t level)
+  {
+    ROS_INFO("[%s]: Received dynamic reconfigure callback.", m_node_name.c_str());
+    setMirrorMode(cfg.mirror_mode);
+  }
 
   /* onInit() //{ */
 
@@ -352,8 +364,12 @@ namespace bluefox3
     m_cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
     m_frame_id = pl.load_param2<std::string>("frame_id");
 
-    const std::string imgproc_mirror_mode_name = pl.load_param2<std::string>("imgproc/mirror/mode");
-    const std::string imgproc_white_balance_mode_name = pl.load_param2<std::string>("imgproc/white_balance/mode");
+    const std::string imgproc_mirror_mode = pl.load_param2<std::string>("imgproc/mirror/mode");
+    /* const std::string imgproc_white_balance_mode = pl.load_param2<std::string>("imgproc/white_balance/mode"); */
+
+    Bluefox3Config cfg;
+    cfg.mirror_mode = imgproc_mirror_mode;
+    m_dynRecServer.updateConfig(cfg);
 
     if (!pl.loaded_successfully())
     {
@@ -362,49 +378,36 @@ namespace bluefox3
       return;
     }
 
-    /* load the white balance parameters //{ */
+    /* /1* load the white balance parameters //{ *1/ */
 
-    if (!str2wbp.count(imgproc_white_balance_mode_name))
-    {
-      ROS_ERROR("[%s]: Invalid white balance mode selected! Valid values are:", m_node_name.c_str());
-      for (const auto& kv : str2wbp)
-        std::cout << "\t" << kv.first << std::endl;
-      ros::shutdown();
-      return;
-    }
-    const TWhiteBalanceParameter imgproc_white_balance_mode = str2wbp.at(imgproc_white_balance_mode_name);
-    double imgproc_white_balance_gainr;
-    double imgproc_white_balance_gaing;
-    double imgproc_white_balance_gainb;
-    if (usrWhiteBalanceNumber(imgproc_white_balance_mode) >= 0)
-    {
-      ROS_INFO("[%s]: User white balance mode selected, loading gain values.", m_node_name.c_str());
-      imgproc_white_balance_gainr = pl.load_param2<double>("imgproc/white_balance/gain/r");
-      imgproc_white_balance_gaing = pl.load_param2<double>("imgproc/white_balance/gain/g");
-      imgproc_white_balance_gainb = pl.load_param2<double>("imgproc/white_balance/gain/b");
-    }
-    if (!pl.loaded_successfully())
-    {
-      ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str());
-      ros::shutdown();
-      return;
-    }
+    /* if (!str2wbp.count(imgproc_white_balance_mode_name)) */
+    /* { */
+    /*   ROS_ERROR("[%s]: Invalid white balance mode selected! Valid values are:", m_node_name.c_str()); */
+    /*   for (const auto& kv : str2wbp) */
+    /*     std::cout << "\t" << kv.first << std::endl; */
+    /*   ros::shutdown(); */
+    /*   return; */
+    /* } */
+    /* const TWhiteBalanceParameter imgproc_white_balance_mode = str2wbp.at(imgproc_white_balance_mode_name); */
+    /* double imgproc_white_balance_gainr; */
+    /* double imgproc_white_balance_gaing; */
+    /* double imgproc_white_balance_gainb; */
+    /* if (usrWhiteBalanceNumber(imgproc_white_balance_mode) >= 0) */
+    /* { */
+    /*   ROS_INFO("[%s]: User white balance mode selected, loading gain values.", m_node_name.c_str()); */
+    /*   imgproc_white_balance_gainr = pl.load_param2<double>("imgproc/white_balance/gain/r"); */
+    /*   imgproc_white_balance_gaing = pl.load_param2<double>("imgproc/white_balance/gain/g"); */
+    /*   imgproc_white_balance_gainb = pl.load_param2<double>("imgproc/white_balance/gain/b"); */
+    /* } */
+    /* if (!pl.loaded_successfully()) */
+    /* { */
+    /*   ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str()); */
+    /*   ros::shutdown(); */
+    /*   return; */
+    /* } */
 
-    //}
+    /* //} */
 
-    /* load the mirror mode //{ */
-
-    if (!str2mm.count(imgproc_mirror_mode_name))
-    {
-      ROS_ERROR("[%s]: Invalid mirror mode selected! Valid values are:", m_node_name.c_str());
-      for (const auto& kv : str2mm)
-        std::cout << "\t" << kv.first << std::endl;
-      ros::shutdown();
-      return;
-    }
-    const TMirrorMode imgproc_mirror_mode = str2mm.at(imgproc_mirror_mode_name);
-
-    //}
 
     //}
 
@@ -444,17 +447,16 @@ namespace bluefox3
 
     //}
 
-    m_bfxInfo_ptr = std::make_shared<InfoBlueDevice>(m_cameraDevice);
     m_imgProc_ptr = std::make_shared<ImageProcessing>(m_cameraDevice);
     m_threadParam_ptr = std::make_shared<ThreadParameter>(m_cameraDevice);
     requestProvider_ptr = std::make_shared<helper::RequestProvider>(m_cameraDevice);
 
-    setMirrorMode(imgproc_mirror_mode);
-    setWhiteBalance(imgproc_white_balance_mode, imgproc_white_balance_gainr, imgproc_white_balance_gaing, imgproc_white_balance_gainb);
+    const auto cbk_dynRec = boost::bind(&Bluefox3::dynRecCallback, this, _1, _2);
+    m_dynRecServer.setCallback(cbk_dynRec);
 
     // | ----------- Start the actual image acquisition ----------- |
-    const auto cbk = std::bind(&Bluefox3::imageCallback, this, std::placeholders::_1, std::placeholders::_2);
-    requestProvider_ptr->acquisitionStart(cbk, m_threadParam_ptr);
+    const auto cbk_img = std::bind(&Bluefox3::imageCallback, this, std::placeholders::_1, std::placeholders::_2);
+    requestProvider_ptr->acquisitionStart(cbk_img, m_threadParam_ptr);
     m_running = true;
 
     // | ----------------- Initialization complete ---------------- |
@@ -463,13 +465,15 @@ namespace bluefox3
   }
   //}
 
-  /* /1* Bluefox3() method //{ *1/ */
-  /* Bluefox3::~Bluefox3() */
-  /* { */
-  /*   if (m_running) */
-  /*     requestProvider_ptr->acquisitionStop(); */
-  /* } */
-  /* //} */
+  /* ~Bluefox3() destructor //{ */
+  Bluefox3::~Bluefox3()
+  {
+    if (m_running)
+      requestProvider_ptr->acquisitionStop();
+    if (m_cameraDevice && m_cameraDevice->isOpen())
+      m_cameraDevice->close();
+  }
+  //}
 
 }  // namespace bluefox3
 

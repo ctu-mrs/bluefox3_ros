@@ -11,6 +11,7 @@
 #include <sensor_msgs/image_encodings.h>
 #include <sensor_msgs/fill_image.h>
 #include <camera_info_manager/camera_info_manager.h>
+#include <dynamic_reconfigure/server.h>
 
 // Msgs
 #include <sensor_msgs/Image.h>
@@ -29,6 +30,9 @@
 // std
 #include <mutex>
 #include <functional>
+
+// local stuff
+#include <bluefox3/Bluefox3Config.h>
 
 //}
 
@@ -57,7 +61,7 @@ namespace bluefox3
   {
   public:
     Bluefox3() : m_node_name("Bluefox3"), m_running(false) {};
-    /* ~Bluefox3(); */
+    ~Bluefox3();
     virtual void onInit();
     void printDevices();
 
@@ -68,7 +72,6 @@ namespace bluefox3
   private:
     DeviceManager m_devMgr;
     Device* m_cameraDevice;
-    std::shared_ptr<InfoBlueDevice> m_bfxInfo_ptr;
     std::shared_ptr<ImageProcessing> m_imgProc_ptr;
     std::shared_ptr<ThreadParameter> m_threadParam_ptr;
     std::shared_ptr<helper::RequestProvider> requestProvider_ptr;
@@ -90,11 +93,12 @@ namespace bluefox3
     void writeAndReadProperty(const PropertyType& prop, ValueType& value);
 
   private:
-    void setMirrorMode(const TMirrorMode mirror_mode);
+    void setMirrorMode(const std::string& mirror_mode_name);
     void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain);
 
   private:
     void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
+    void dynRecCallback(const bluefox3::Bluefox3Config &cfg, [[maybe_unused]] uint32_t level);
 
   private:
     // --------------------------------------------------------------
@@ -106,6 +110,8 @@ namespace bluefox3
     std::string m_frame_id;
 
     //}
+
+    dynamic_reconfigure::Server<Bluefox3Config> m_dynRecServer;
   };
 
   //}
