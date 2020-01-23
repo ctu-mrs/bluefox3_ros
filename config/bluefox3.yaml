@@ -1,0 +1,10 @@
+imgproc:
+  mirror:
+    mode: mmTopDown
+
+  white_balance:
+    mode: wbpBlueSky
+    gain:
+      r: 1.0
+      g: 1.0
+      b: 1.0

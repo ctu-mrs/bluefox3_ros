@@ -148,8 +148,7 @@ namespace bluefox3
     ROS_INFO("[%s]: Listing all available devices:", m_node_name.c_str());
     // show all devices
     for (unsigned int i = 0; i < m_devMgr.deviceCount(); i++)
-      std::cout << "\t" << i << "\t" << (m_devMgr[i])->deviceID << "\t" << (m_devMgr[i])->family << "\t" << (m_devMgr[i])->product << "\t"
-                << (m_devMgr[i])->serial << std::endl;
+      std::cout << "\t#: " << i << "\t" << (m_devMgr[i])->deviceID.name() << ": " << (m_devMgr[i])->deviceID.readS() << "\t"  << (m_devMgr[i])->family.name() << ": " << (m_devMgr[i])->family.readS() << "\t"  << (m_devMgr[i])->product.name() << ": " << (m_devMgr[i])->product.readS() << "\t"  << (m_devMgr[i])->serial.name() << ": " << (m_devMgr[i])->serial.readS() << std::endl;
   }
   //}
 
@@ -353,26 +352,17 @@ namespace bluefox3
     m_cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
     m_frame_id = pl.load_param2<std::string>("frame_id");
 
-    const std::string imgproc_mirror_mode_name = pl.load_param2<std::string>("imgproc/mirror_mode");
-    const std::string imgproc_white_balance_mode_name = pl.load_param2<std::string>("imgproc/white_balance_mode");
-    const double imgproc_white_balance_gainr = pl.load_param2<double>("imgproc/white_balance/gain/r");
-    const double imgproc_white_balance_gaing = pl.load_param2<double>("imgproc/white_balance/gain/g");
-    const double imgproc_white_balance_gainb = pl.load_param2<double>("imgproc/white_balance/gain/b");
+    const std::string imgproc_mirror_mode_name = pl.load_param2<std::string>("imgproc/mirror/mode");
+    const std::string imgproc_white_balance_mode_name = pl.load_param2<std::string>("imgproc/white_balance/mode");
 
     if (!pl.loaded_successfully())
     {
       ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str());
       ros::shutdown();
+      return;
     }
 
-    if (!str2mm.count(imgproc_mirror_mode_name))
-    {
-      ROS_ERROR("[%s]: Invalid mirror mode selected! Valid values are:", m_node_name.c_str());
-      for (const auto& kv : str2mm)
-        std::cout << "\t" << kv.first << std::endl;
-      ros::shutdown();
-    }
-    const TMirrorMode imgproc_mirror_mode = str2mm.at(imgproc_mirror_mode_name);
+    /* load the white balance parameters //{ */
 
     if (!str2wbp.count(imgproc_white_balance_mode_name))
     {
@@ -380,8 +370,41 @@ namespace bluefox3
       for (const auto& kv : str2wbp)
         std::cout << "\t" << kv.first << std::endl;
       ros::shutdown();
+      return;
     }
     const TWhiteBalanceParameter imgproc_white_balance_mode = str2wbp.at(imgproc_white_balance_mode_name);
+    double imgproc_white_balance_gainr;
+    double imgproc_white_balance_gaing;
+    double imgproc_white_balance_gainb;
+    if (usrWhiteBalanceNumber(imgproc_white_balance_mode) >= 0)
+    {
+      ROS_INFO("[%s]: User white balance mode selected, loading gain values.", m_node_name.c_str());
+      imgproc_white_balance_gainr = pl.load_param2<double>("imgproc/white_balance/gain/r");
+      imgproc_white_balance_gaing = pl.load_param2<double>("imgproc/white_balance/gain/g");
+      imgproc_white_balance_gainb = pl.load_param2<double>("imgproc/white_balance/gain/b");
+    }
+    if (!pl.loaded_successfully())
+    {
+      ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str());
+      ros::shutdown();
+      return;
+    }
+
+    //}
+
+    /* load the mirror mode //{ */
+
+    if (!str2mm.count(imgproc_mirror_mode_name))
+    {
+      ROS_ERROR("[%s]: Invalid mirror mode selected! Valid values are:", m_node_name.c_str());
+      for (const auto& kv : str2mm)
+        std::cout << "\t" << kv.first << std::endl;
+      ros::shutdown();
+      return;
+    }
+    const TMirrorMode imgproc_mirror_mode = str2mm.at(imgproc_mirror_mode_name);
+
+    //}
 
     //}
 
@@ -400,6 +423,7 @@ namespace bluefox3
     {
       ROS_ERROR("[%s]: Camera with serial '%s' was not found, ending the node", m_node_name.c_str(), camera_serial.c_str());
       ros::shutdown();
+      return;
     }
 
     //}
@@ -414,6 +438,7 @@ namespace bluefox3
     {
       ROS_ERROR("[%s]: An error occurred while opening the device (%s), ending the node", m_node_name.c_str(), e.getErrorString().c_str());
       ros::shutdown();
+      return;
     }
 
 
@@ -430,6 +455,7 @@ namespace bluefox3
     // | ----------- Start the actual image acquisition ----------- |
     const auto cbk = std::bind(&Bluefox3::imageCallback, this, std::placeholders::_1, std::placeholders::_2);
     requestProvider_ptr->acquisitionStart(cbk, m_threadParam_ptr);
+    m_running = true;
 
     // | ----------------- Initialization complete ---------------- |
 
@@ -437,12 +463,13 @@ namespace bluefox3
   }
   //}
 
-  /* Bluefox3() method //{ */
-  Bluefox3::~Bluefox3()
-  {
-    requestProvider_ptr->acquisitionStop();
-  }
-  //}
+  /* /1* Bluefox3() method //{ *1/ */
+  /* Bluefox3::~Bluefox3() */
+  /* { */
+  /*   if (m_running) */
+  /*     requestProvider_ptr->acquisitionStop(); */
+  /* } */
+  /* //} */
 
 }  // namespace bluefox3
 

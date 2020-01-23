@@ -56,13 +56,14 @@ namespace bluefox3
   class Bluefox3 : public nodelet::Nodelet
   {
   public:
-    Bluefox3() : m_node_name("Bluefox3"){};
-    ~Bluefox3();
+    Bluefox3() : m_node_name("Bluefox3"), m_running(false) {};
+    /* ~Bluefox3(); */
     virtual void onInit();
     void printDevices();
 
   private:
     const std::string m_node_name;
+    bool m_running;
 
   private:
     DeviceManager m_devMgr;

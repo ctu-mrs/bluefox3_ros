@@ -13,6 +13,6 @@ int main()
   
   // show all devices
   for (unsigned int i = 0; i < devMgr.deviceCount(); i++)
-    std::cout << "\t" << i << "\t" << (devMgr[i])->deviceID << "\t" << (devMgr[i])->family << "\t" << (devMgr[i])->product << "\t" << (devMgr[i])->serial << std::endl;
+    std::cout << "\t#: " << i << "\t" << (devMgr[i])->deviceID.name() << ": " << (devMgr[i])->deviceID.readS() << "\t"  << (devMgr[i])->family.name() << ": " << (devMgr[i])->family.readS() << "\t"  << (devMgr[i])->product.name() << ": " << (devMgr[i])->product.readS() << "\t"  << (devMgr[i])->serial.name() << ": " << (devMgr[i])->serial.readS() << std::endl;
   return 0;
 }
