@@ -1,8 +1,9 @@
 <launch>
 
+  <arg name="uav_name" default="$(optenv UAV_NAME uav)"/>
   <arg name="camera_serial" default="$(env bluefox3)"/>
-  <arg name="camera_name" default="bluefox3_$(arg serial)"/>
-  <arg name="frame_id" default="$(arg camera_name)"/>
+  <arg name="camera_name" default="bluefox3"/>
+  <arg name="frame_id" default="$(uav_name)/$(arg camera_name)"/>
   <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
 
   <arg name="debug" default="false" />
@@ -10,25 +11,28 @@
   <arg unless="$(arg debug)" name="launch_prefix" value=""/>
   <arg     if="$(arg debug)" name="launch_prefix" value="debug_roslaunch"/>
 
-  <node pkg="nodelet" type="nodelet" name="$(arg camera_name)" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
+  <group ns="$(arg uav_name)">
+    <node pkg="nodelet" type="nodelet" name="$(arg camera_name)" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
 
-    <param name="camera_serial" type="string" value="$(arg serial)"/>
-    <param name="camera_name" type="string" value="$(arg camera_name)"/>
-    <param name="frame_id" type="string" value="$(arg frame_id)"/>
-    <param name="calib_url" type="string" value="$(arg calib_url)"/>
+      <param name="camera_serial" type="string" value="$(arg serial)"/>
+      <param name="camera_name" type="string" value="$(arg camera_name)"/>
+      <param name="frame_id" type="string" value="$(arg frame_id)"/>
+      <param name="calib_url" type="string" value="$(arg calib_url)"/>
 
-    <remap from="~debug_image" to="~debug_image" />
-    <remap from="~detected_objects_pcl" to="~detected_balls_pcl" />
+      <!-- Publishers -->
+      <remap from="~image_raw" to="~image_raw" />
+      <remap from="~camera_info" to="~camera_info" />
 
-  </node>
+      <!-- Disable publishing of specific image transport topics -->
+      <group ns="image_raw">
+        <rosparam param="disable_pub_plugins">
+      - 'image_transport/compressedDepth'
+      - 'image_transport/theora'
+      - 'image_transport/h264'
+        </rosparam>
+      </group>
 
-  <!-- Disable publishing of image transport topics -->
-  <group ns="image_raw">
-    <rosparam param="disable_pub_plugins">
-  - 'image_transport/compressedDepth'
-  - 'image_transport/theora'
-  - 'image_transport/h264'
-    </rosparam>
+    </node>
   </group>
 
 </launch>

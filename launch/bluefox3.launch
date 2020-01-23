@@ -17,19 +17,20 @@
     <param name="frame_id" type="string" value="$(arg frame_id)"/>
     <param name="calib_url" type="string" value="$(arg calib_url)"/>
 
-    <remap from="~debug_image" to="~debug_image" />
-    <remap from="~detected_objects_pcl" to="~detected_balls_pcl" />
+    <!-- Publishers -->
+    <remap from="~image_raw" to="~image_raw" />
+    <remap from="~camera_info" to="~camera_info" />
+
+    <!-- Disable publishing of specific image transport topics -->
+    <group ns="image_raw">
+      <rosparam param="disable_pub_plugins">
+    - 'image_transport/compressedDepth'
+    - 'image_transport/theora'
+    - 'image_transport/h264'
+      </rosparam>
+    </group>
 
   </node>
-
-  <!-- Disable publishing of image transport topics -->
-  <group ns="image_raw">
-    <rosparam param="disable_pub_plugins">
-  - 'image_transport/compressedDepth'
-  - 'image_transport/theora'
-  - 'image_transport/h264'
-    </rosparam>
-  </group>
 
 </launch>
 
