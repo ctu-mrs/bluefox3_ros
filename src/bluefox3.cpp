@@ -154,8 +154,8 @@ namespace bluefox3
   //}
 
   /* convenience functions for property reading/writing //{ */
-  template <typename PropertyType, typename ValueType>
-  ValueType clampProperty(const PropertyType& prop, const ValueType& value)
+  template <typename PropertyType>
+  typename PropertyType::value_type clampProperty(const PropertyType& prop, const typename PropertyType::value_type& value)
   {
     return std::clamp(value, prop.getMinValue(), prop.getMaxValue());
   }
@@ -175,16 +175,13 @@ namespace bluefox3
   void printTranslationDict(const TranslationDict<ValueType>& dict)
   {
     for (const auto& p : dict)
-    {
-      std::cout << "[" << p.first << ": " << p.second << "]";
-    }
-    std::cout << std::endl;
+      std::cout << "[" << p.first << ": " << p.second << "]" << std::endl;
   }
   //}
 
   /* writeProperty() method //{ */
-  template <typename PropertyType, typename ValueType>
-  void Bluefox3::writeProperty(const PropertyType& prop, ValueType value)
+  template <typename PropertyType>
+  void Bluefox3::writeProperty(const PropertyType& prop, typename PropertyType::value_type value)
   {
     using PropertyValueType = typename PropertyType::value_type;
     // Check if it's possible to write to this property
@@ -215,10 +212,38 @@ namespace bluefox3
   }
   //}
 
-  /* readProperty() method //{ */
-  template <typename PropertyType, typename ValueType>
-  void Bluefox3::readProperty(const PropertyType& prop, ValueType& value)
+  /* writeDictProperty() method //{ */
+  template <typename PropertyType>
+  void Bluefox3::writeDictProperty(const PropertyType& prop, const std::string& key)
   {
+    using PropertyValueType = typename PropertyType::value_type;
+    const auto dict = getTranslationDict(prop);
+    bool key_exists = false;
+    PropertyValueType val;
+    for (const auto& pair : dict)
+    {
+      if (pair.first == key)
+      {
+        key_exists = true;
+        val = static_cast<PropertyValueType>(pair.second);
+        break;
+      }
+    }
+    if (!key_exists)
+    {
+      ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to write property (string key '" << key << "' doesn't exist)");
+      printTranslationDict(dict);
+      return;
+    }
+    writeProperty(prop, val);
+  }
+  //}
+
+  /* readProperty() method //{ */
+  template <typename PropertyType>
+  void Bluefox3::readProperty(const PropertyType& prop, typename PropertyType::value_type& value)
+  {
+    using PropertyValueType = typename PropertyType::value_type;
     if (!(prop.isValid() && prop.isVisible()))
     {
       ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to read property");
@@ -227,7 +252,7 @@ namespace bluefox3
 
     try
     {
-      value = static_cast<ValueType>(prop.read());
+      value = static_cast<PropertyValueType>(prop.read());
     }
     catch (...)
     {
@@ -236,12 +261,49 @@ namespace bluefox3
   }
   //}
 
+  /* readDictProperty() method //{ */
+  template <typename PropertyType>
+  void Bluefox3::readDictProperty(const PropertyType& prop, std::string& key)
+  {
+    using PropertyValueType = typename PropertyType::value_type;
+    PropertyValueType val;
+    readProperty(prop, val);
+    const auto dict = getTranslationDict(prop);
+    bool key_exists = false;
+    for (const auto& pair : dict)
+    {
+      if (pair.second == val)
+      {
+        key_exists = true;
+        key = pair.first;
+        break;
+      }
+    }
+    if (!key_exists)
+    {
+      ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to read property (string key for value '" << val << "' doesn't exist)");
+      printTranslationDict(dict);
+      return;
+    }
+  }
+  //}
+
   /* writeAndReadProperty() method //{ */
-  template <typename PropertyType, typename ValueType>
-  void Bluefox3::writeAndReadProperty(const PropertyType& prop, ValueType& value)
+  template <typename PropertyType>
+  void Bluefox3::writeAndReadProperty(const PropertyType& prop, typename PropertyType::value_type& value)
   {
     writeProperty(prop, value);
     readProperty(prop, value);
+  }
+  //}
+
+  /* writeAndReadProperty() method //{ */
+  template <typename PropertyType>
+  void Bluefox3::writeAndReadDictProperty(const PropertyType& prop, std::string& value)
+  {
+    std::cout << "writing " << value << " to " << prop.name() << std::endl;
+    writeDictProperty(prop, value);
+    readDictProperty(prop, value);
   }
   //}
 
@@ -266,6 +328,7 @@ namespace bluefox3
     }
     const TMirrorMode mirror_mode = str2mm.at(mirror_mode_name);
     writeProperty(m_imgProc_ptr->mirrorModeGlobal, mirror_mode);
+    printTranslationDict(getTranslationDict(m_imgProc_ptr->mirrorModeGlobal));
   }
   //}
 
@@ -332,10 +395,13 @@ namespace bluefox3
   }
   //}
 
-  void Bluefox3::dynRecCallback(const bluefox3::Bluefox3Config &cfg, [[maybe_unused]] uint32_t level)
+  void Bluefox3::dynRecCallback(bluefox3::Bluefox3Config cfg, [[maybe_unused]] uint32_t level)
   {
     ROS_INFO("[%s]: Received dynamic reconfigure callback.", m_node_name.c_str());
-    setMirrorMode(cfg.mirror_mode);
+    /* setMirrorMode(cfg.mirror_mode); */
+    writeAndReadDictProperty(m_imgProc_ptr->mirrorModeGlobal, cfg.mirror_mode);
+    writeAndReadDictProperty(m_GenICamACQ_ptr->exposureAuto, cfg.acq_autoexp_mode);
+    m_dynRecServer.updateConfig(cfg);
   }
 
   /* onInit() //{ */
@@ -364,12 +430,9 @@ namespace bluefox3
     m_cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
     m_frame_id = pl.load_param2<std::string>("frame_id");
 
-    const std::string imgproc_mirror_mode = pl.load_param2<std::string>("imgproc/mirror/mode");
+    const std::string imgproc_mirror_mode = pl.load_param2<std::string>("imgproc/mirror/mode", "mmOff");
+    const std::string acq_autoexp_mode = pl.load_param2<std::string>("acquire/auto_exposure/mode", "Continuous");
     /* const std::string imgproc_white_balance_mode = pl.load_param2<std::string>("imgproc/white_balance/mode"); */
-
-    Bluefox3Config cfg;
-    cfg.mirror_mode = imgproc_mirror_mode;
-    m_dynRecServer.updateConfig(cfg);
 
     if (!pl.loaded_successfully())
     {
@@ -447,9 +510,15 @@ namespace bluefox3
 
     //}
 
+    m_GenICamACQ_ptr = std::make_shared<GenICam::AcquisitionControl>(m_cameraDevice);
     m_imgProc_ptr = std::make_shared<ImageProcessing>(m_cameraDevice);
     m_threadParam_ptr = std::make_shared<ThreadParameter>(m_cameraDevice);
     requestProvider_ptr = std::make_shared<helper::RequestProvider>(m_cameraDevice);
+
+    Bluefox3Config cfg;
+    cfg.mirror_mode = imgproc_mirror_mode;
+    cfg.acq_autoexp_mode = acq_autoexp_mode;
+    m_dynRecServer.updateConfig(cfg);
 
     const auto cbk_dynRec = boost::bind(&Bluefox3::dynRecCallback, this, _1, _2);
     m_dynRecServer.setCallback(cbk_dynRec);

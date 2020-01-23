@@ -24,6 +24,7 @@
 // Bluefox stuff
 #include <apps/Common/exampleHelper.h>
 #include <mvIMPACT_CPP/mvIMPACT_acquire.h>
+#include <mvIMPACT_CPP/mvIMPACT_acquire_GenICam.h>
 #include <mvIMPACT_CPP/mvIMPACT_acquire_helper.h>
 #include <mvDeviceManager/Include/mvDeviceManager.h>
 
@@ -72,6 +73,7 @@ namespace bluefox3
   private:
     DeviceManager m_devMgr;
     Device* m_cameraDevice;
+    std::shared_ptr<GenICam::AcquisitionControl> m_GenICamACQ_ptr;
     std::shared_ptr<ImageProcessing> m_imgProc_ptr;
     std::shared_ptr<ThreadParameter> m_threadParam_ptr;
     std::shared_ptr<helper::RequestProvider> requestProvider_ptr;
@@ -85,12 +87,18 @@ namespace bluefox3
     std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
     std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
 
-    template <typename PropertyType, typename ValueType>
-    void writeProperty(const PropertyType& prop, ValueType value);
-    template <typename PropertyType, typename ValueType>
-    void readProperty(const PropertyType& prop, ValueType& value);
-    template <typename PropertyType, typename ValueType>
-    void writeAndReadProperty(const PropertyType& prop, ValueType& value);
+    template <typename PropertyType>
+    void writeProperty(const PropertyType& prop, typename PropertyType::value_type value);
+    template <typename PropertyType>
+    void readProperty(const PropertyType& prop, typename PropertyType::value_type& value);
+    template <typename PropertyType>
+    void writeAndReadProperty(const PropertyType& prop, typename PropertyType::value_type& value);
+    template <typename PropertyType>
+    void writeDictProperty(const PropertyType& prop, const std::string& key);
+    template <typename PropertyType>
+    void readDictProperty(const PropertyType& prop, std::string& key);
+    template <typename PropertyType>
+    void writeAndReadDictProperty(const PropertyType& prop, std::string& value);
 
   private:
     void setMirrorMode(const std::string& mirror_mode_name);
@@ -98,7 +106,7 @@ namespace bluefox3
 
   private:
     void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
-    void dynRecCallback(const bluefox3::Bluefox3Config &cfg, [[maybe_unused]] uint32_t level);
+    void dynRecCallback(bluefox3::Bluefox3Config cfg, [[maybe_unused]] uint32_t level);
 
   private:
     // --------------------------------------------------------------
