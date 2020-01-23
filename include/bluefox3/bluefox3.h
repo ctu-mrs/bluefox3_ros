@@ -36,66 +36,79 @@ namespace bluefox3
 {
 
   /* struct ThreadParameter //{ */
-  
+
   struct ThreadParameter
   {
     Device* cameraDevice_ptr;
     unsigned int requestsCaptured;
     Statistics statistics;
-    explicit ThreadParameter(Device* cameraDevice_ptr) : cameraDevice_ptr(cameraDevice_ptr), requestsCaptured(0), statistics(cameraDevice_ptr) {}
+    explicit ThreadParameter(Device* cameraDevice_ptr) : cameraDevice_ptr(cameraDevice_ptr), requestsCaptured(0), statistics(cameraDevice_ptr)
+    {
+    }
     ThreadParameter(const ThreadParameter& src) = delete;
     ThreadParameter& operator=(const ThreadParameter& rhs) = delete;
   };
-  
+
   //}
 
   /* class Bluefox3 //{ */
 
   class Bluefox3 : public nodelet::Nodelet
   {
-    public:
-      Bluefox3() : m_node_name("Bluefox3") {};
-      ~Bluefox3();
-      virtual void onInit();
-      void printDevices();
+  public:
+    Bluefox3() : m_node_name("Bluefox3"){};
+    ~Bluefox3();
+    virtual void onInit();
+    void printDevices();
 
-    private:
-      const std::string m_node_name;
+  private:
+    const std::string m_node_name;
 
-    private:
-      DeviceManager m_devMgr;
-      Device *m_cameraDevice;
-      std::shared_ptr<ThreadParameter> m_threadParam_ptr;
-      std::shared_ptr<helper::RequestProvider> requestProvider_ptr;
+  private:
+    DeviceManager m_devMgr;
+    Device* m_cameraDevice;
+    std::shared_ptr<InfoBlueDevice> m_bfxInfo_ptr;
+    std::shared_ptr<ImageProcessing> m_imgProc_ptr;
+    std::shared_ptr<ThreadParameter> m_threadParam_ptr;
+    std::shared_ptr<helper::RequestProvider> requestProvider_ptr;
 
-    private:
-      std::mutex m_pub_mtx;
-      image_transport::CameraPublisher m_pub;
-      std::shared_ptr<camera_info_manager::CameraInfoManager> cinfoMgr_ptr;
+  private:
+    std::mutex m_pub_mtx;
+    image_transport::CameraPublisher m_pub;
+    std::shared_ptr<camera_info_manager::CameraInfoManager> m_cinfoMgr_ptr;
 
-    private:
-      std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
-      std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
+  private:
+    std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
+    std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
 
-    public:
-      void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
+    template <typename PropertyType, typename ValueType>
+    void writeProperty(const PropertyType& prop, ValueType value);
+    template <typename PropertyType, typename ValueType>
+    void readProperty(const PropertyType& prop, ValueType& value);
+    template <typename PropertyType, typename ValueType>
+    void writeAndReadProperty(const PropertyType& prop, ValueType& value);
 
-    private:
+  private:
+    void setMirrorMode(const TMirrorMode mirror_mode);
+    void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain);
 
-      // --------------------------------------------------------------
-      // |                ROS-related member variables                |
-      // --------------------------------------------------------------
+  private:
+    void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
 
-      /* Parameters, loaded from ROS //{ */
+  private:
+    // --------------------------------------------------------------
+    // |                ROS-related member variables                |
+    // --------------------------------------------------------------
 
-      std::string m_frame_id;
+    /* Parameters, loaded from ROS //{ */
 
-      //}
+    std::string m_frame_id;
 
+    //}
   };
-  
+
   //}
 
 }  // namespace bluefox3
 
-#endif // #ifndef BALLOONFILTER
+#endif  // #ifndef BALLOONFILTER
