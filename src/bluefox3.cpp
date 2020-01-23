@@ -93,12 +93,12 @@ namespace bluefox3
     threadParameter_ptr->requestsCaptured++;
     // display some statistical information every 100th image
     const Statistics& s = threadParameter_ptr->statistics;
-    if(threadParameter_ptr->requestsCaptured % 100 == 0)
+    if(threadParameter_ptr->requestsCaptured % 50 == 0)
     {
-      std::cout << "Info from " << threadParameter_ptr->cameraDevice_ptr->serial.read()
-                << ": " << s.framesPerSecond.name() << ": " << s.framesPerSecond.readS()
-                << ", " << s.errorCount.name() << ": " << s.errorCount.readS()
-                << ", " << s.captureTime_s.name() << ": " << s.captureTime_s.readS() << std::endl;
+      ROS_INFO_STREAM_THROTTLE(1.0, "[" << m_node_name.c_str() << "]: " << "Info from " << threadParameter_ptr->cameraDevice_ptr->serial.read()
+                                        << ": " << s.framesPerSecond.name() << ": " << s.framesPerSecond.readS()
+                                        << ", " << s.errorCount.name() << ": " << s.errorCount.readS()
+                                        << ", " << s.captureTime_s.name() << ": " << s.captureTime_s.readS());
     }
     if (request_ptr->isOK())
     {
