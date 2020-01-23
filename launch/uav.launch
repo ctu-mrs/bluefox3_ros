@@ -3,7 +3,7 @@
   <arg name="uav_name" default="$(optenv UAV_NAME uav)"/>
   <arg name="camera_serial" default="$(env bluefox3)"/>
   <arg name="camera_name" default="bluefox3"/>
-  <arg name="frame_id" default="$(uav_name)/$(arg camera_name)"/>
+  <arg name="frame_id" default="$(arg uav_name)/$(arg camera_name)"/>
   <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
 
   <arg name="debug" default="false" />
@@ -14,23 +14,21 @@
   <group ns="$(arg uav_name)">
     <node pkg="nodelet" type="nodelet" name="$(arg camera_name)" args="standalone bluefox3/Bluefox3" output="screen" launch-prefix="$(arg launch_prefix)" >
 
-      <param name="camera_serial" type="string" value="$(arg serial)"/>
+      <param name="camera_serial" type="string" value="$(arg camera_serial)"/>
       <param name="camera_name" type="string" value="$(arg camera_name)"/>
       <param name="frame_id" type="string" value="$(arg frame_id)"/>
       <param name="calib_url" type="string" value="$(arg calib_url)"/>
 
-      <!-- Publishers -->
-      <remap from="~image_raw" to="~image_raw" />
-      <remap from="~camera_info" to="~camera_info" />
-
       <!-- Disable publishing of specific image transport topics -->
-      <group ns="image_raw">
-        <rosparam param="disable_pub_plugins">
+      <rosparam param="image_raw/disable_pub_plugins">
       - 'image_transport/compressedDepth'
       - 'image_transport/theora'
       - 'image_transport/h264'
-        </rosparam>
-      </group>
+      </rosparam>
+
+      <!-- Publishers -->
+      <remap from="~image_raw" to="~image_raw" />
+      <remap from="~camera_info" to="~camera_info" />
 
     </node>
   </group>
