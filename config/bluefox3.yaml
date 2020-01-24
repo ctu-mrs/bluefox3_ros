@@ -3,5 +3,5 @@ imgproc:
     mode: TopDownAndLeftRight
 acquire:
   exposure:
-    time: 100 # microseconds
-    AECMode: Once
+    # time: 100 # microseconds
+    AECMode: Continuous
