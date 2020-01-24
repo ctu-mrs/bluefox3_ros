@@ -8,6 +8,7 @@ namespace bluefox3
 
   std::string Bluefox3::pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format)
   {
+    /* ROS_ERROR_STREAM_THROTTLE(1.0, "[" << m_node_name << "]: pixel format: '" << pixel_format.readS() << "'"); */
     std::string ret = "unknown";
     switch (pixel_format.read())
     {
@@ -91,15 +92,17 @@ namespace bluefox3
   void Bluefox3::imageCallback(std::shared_ptr<Request> request_ptr, std::shared_ptr<ThreadParameter> threadParameter_ptr)
   {
     const ros::Time cbk_time = ros::Time::now();
+
     threadParameter_ptr->requestsCaptured++;
     // display some statistical information every 100th image
     const Statistics& s = threadParameter_ptr->statistics;
+    const ros::Duration capture_time_corrected(s.captureTime_s.read()/10.0);
     if (threadParameter_ptr->requestsCaptured % 50 == 0)
     {
-      ROS_INFO_STREAM_THROTTLE(1.0, "[" << m_node_name.c_str() << "]: "
+      ROS_INFO_STREAM_THROTTLE(2.0, "[" << m_node_name.c_str() << "]: "
                                         << "Info from " << threadParameter_ptr->cameraDevice_ptr->serial.read() << ": " << s.framesPerSecond.name() << ": "
                                         << s.framesPerSecond.readS() << ", " << s.errorCount.name() << ": " << s.errorCount.readS() << ", "
-                                        << s.captureTime_s.name() << ": " << s.captureTime_s.readS());
+                                        << s.captureTime_s.name() << ": " << capture_time_corrected);
     }
     if (request_ptr->isOK())
     {
@@ -121,7 +124,7 @@ namespace bluefox3
       }
       sensor_msgs::Image image_msg;
       sensor_msgs::fillImage(image_msg, encoding, imh, imw, imstep, imdata);
-      const ros::Time stamp = cbk_time - ros::Duration(s.captureTime_s.read());
+      ros::Time stamp = cbk_time - capture_time_corrected;
       image_msg.header.stamp = stamp;
       image_msg.header.frame_id = m_frame_id;
 
@@ -183,6 +186,7 @@ namespace bluefox3
   template <typename PropertyType>
   void Bluefox3::writeProperty(const PropertyType& prop, typename PropertyType::value_type value)
   {
+    /* std::cout << ">> Writing " << value << " to " << prop.name() << std::endl; */
     using PropertyValueType = typename PropertyType::value_type;
     // Check if it's possible to write to this property
     if (!(prop.isVisible() && prop.isWriteable() && prop.isValid()))
@@ -241,50 +245,49 @@ namespace bluefox3
 
   /* readProperty() method //{ */
   template <typename PropertyType>
-  void Bluefox3::readProperty(const PropertyType& prop, typename PropertyType::value_type& value)
+  bool Bluefox3::readProperty(const PropertyType& prop, typename PropertyType::value_type& value)
   {
     using PropertyValueType = typename PropertyType::value_type;
     if (!(prop.isValid() && prop.isVisible()))
     {
       ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to read property");
-      return;
+      return false;
     }
 
     try
     {
       value = static_cast<PropertyValueType>(prop.read());
+      /* std::cout << "<< Read " << value << " from " << prop.name() << std::endl; */
+      return true;
     }
     catch (...)
     {
       ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": failed to read property");
+      return false;
     }
   }
   //}
 
   /* readDictProperty() method //{ */
   template <typename PropertyType>
-  void Bluefox3::readDictProperty(const PropertyType& prop, std::string& key)
+  bool Bluefox3::readDictProperty(const PropertyType& prop, std::string& key)
   {
     using PropertyValueType = typename PropertyType::value_type;
     PropertyValueType val;
-    readProperty(prop, val);
+    if (!readProperty(prop, val))
+      return false;
     const auto dict = getTranslationDict(prop);
-    bool key_exists = false;
     for (const auto& pair : dict)
     {
       if (pair.second == val)
       {
-        key_exists = true;
         key = pair.first;
-        break;
+        return true;
       }
     }
-    if (!key_exists)
-    {
-      ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to read property (string key for value '" << val << "' doesn't exist)");
-      printTranslationDict(dict);
-      return;
-    }
+    ROS_ERROR_STREAM("[" << m_node_name << "]: " << prop.name() << ": unable to read property (string key for value '" << val << "' doesn't exist)");
+    printTranslationDict(dict);
+    return false;
   }
   //}
 
@@ -293,17 +296,18 @@ namespace bluefox3
   void Bluefox3::writeAndReadProperty(const PropertyType& prop, typename PropertyType::value_type& value)
   {
     writeProperty(prop, value);
-    readProperty(prop, value);
+    if (readProperty(prop, value))
+      std::cout << prop.name() << ": " << prop.readS() << std::endl;
   }
   //}
 
-  /* writeAndReadProperty() method //{ */
+  /* writeAndReadDictProperty() method //{ */
   template <typename PropertyType>
   void Bluefox3::writeAndReadDictProperty(const PropertyType& prop, std::string& value)
   {
-    /* std::cout << "writing " << value << " to " << prop.name() << std::endl; */
     writeDictProperty(prop, value);
-    readDictProperty(prop, value);
+    if (readDictProperty(prop, value))
+      std::cout << prop.name() << ": " << prop.readS() << std::endl;
   }
   //}
 
@@ -317,16 +321,27 @@ namespace bluefox3
   };
 
   template <typename PropertyType>
-  void Bluefox3::setMirrorMode(const PropertyType& prop, const bool TopDown, const bool LeftRight)
+  void Bluefox3::setMirrorMode(const PropertyType& prop, bool& TopDown, bool& LeftRight)
   {
     TMirrorMode mirror_mode = mmOff;
-    if (TopDown && !LeftRight)
+    if (TopDown)
       mirror_mode = mmTopDown;
-    else if (!TopDown && LeftRight)
+    if (LeftRight)
       mirror_mode = mmLeftRight;
-    else if (TopDown && LeftRight)
+    if (TopDown && LeftRight)
       mirror_mode = mmTopDownAndLeftRight;
     writeProperty(prop, mirror_mode);
+    if (readProperty(prop, mirror_mode))
+      std::cout << prop.name() << ": " << prop.readS() << std::endl;
+    if (mirror_mode == mmTopDown || mirror_mode == mmTopDownAndLeftRight)
+      TopDown = true;
+    if (mirror_mode == mmLeftRight || mirror_mode == mmTopDownAndLeftRight)
+      LeftRight = true;
+    if (mirror_mode == mmOff)
+    {
+      TopDown = false;
+      LeftRight = false;
+    }
   }
   //}
 
@@ -433,10 +448,8 @@ namespace bluefox3
     const std::string acq_autoexp_mode = pl.load_param2<std::string>("acquire/exposure/AECMode", "Continuous");
 
     Bluefox3Config cfg;
-    if (imgproc_mirror_mode.find("TopDown") != std::string::npos)
-      cfg.mm_TopDown = true;
-    if (imgproc_mirror_mode.find("LeftRight") != std::string::npos)
-      cfg.mm_LeftRight = true;
+    cfg.mm_TopDown = imgproc_mirror_mode.find("TopDown") != std::string::npos;
+    cfg.mm_LeftRight = imgproc_mirror_mode.find("LeftRight") != std::string::npos;
     cfg.acq_exposure_time = acq_exposure_time;
     cfg.acq_exposure_AECMode = acq_autoexp_mode;
     m_dynRecServer_ptr->updateConfig(cfg);
