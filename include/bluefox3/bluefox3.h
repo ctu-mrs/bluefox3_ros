@@ -94,19 +94,20 @@ namespace bluefox3
     template <typename PropertyType>
     void writeAndReadProperty(const PropertyType& prop, typename PropertyType::value_type& value);
     template <typename PropertyType>
-    void writeDictProperty(const PropertyType& prop, const std::string& key);
+    void writeDictProperty(const PropertyType& prop, const std::string& keystr);
     template <typename PropertyType>
     void readDictProperty(const PropertyType& prop, std::string& key);
     template <typename PropertyType>
     void writeAndReadDictProperty(const PropertyType& prop, std::string& value);
 
   private:
-    void setMirrorMode(const std::string& mirror_mode_name);
-    void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain);
+    template <typename PropertyType>
+    void setMirrorMode(const PropertyType& prop, const bool TopDown, const bool LeftRight);
+    /* void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain); */
 
   private:
     void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
-    void dynRecCallback(bluefox3::Bluefox3Config cfg, [[maybe_unused]] uint32_t level);
+    void dynRecCallback(bluefox3::Bluefox3Config& cfg, [[maybe_unused]] uint32_t level);
 
   private:
     // --------------------------------------------------------------
@@ -119,7 +120,8 @@ namespace bluefox3
 
     //}
 
-    dynamic_reconfigure::Server<Bluefox3Config> m_dynRecServer;
+    boost::recursive_mutex m_dynRecServer_mtx;
+    std::shared_ptr<dynamic_reconfigure::Server<Bluefox3Config>> m_dynRecServer_ptr;
   };
 
   //}

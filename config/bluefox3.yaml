@@ -1,3 +1,7 @@
 imgproc:
   mirror:
-    mode: mmTopDownAndLeftRight
+    mode: TopDownAndLeftRight
+acquire:
+  exposure:
+    time: 100 # microseconds
+    AECMode: Once
