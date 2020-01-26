@@ -1,6 +1,6 @@
 imgproc:
   mirror:
-    mode: TopDownAndLeftRight
+    mode: Off
 acquire:
   exposure:
     # time: 100 # microseconds
