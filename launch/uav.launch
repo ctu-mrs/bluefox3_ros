@@ -1,7 +1,7 @@
 <launch>
 
   <arg name="uav_name" default="$(optenv UAV_NAME uav)"/>
-  <arg name="camera_serial" default="$(env bluefox3)"/>
+  <arg name="serial" default="$(env BLUEFOX3)"/>
   <arg name="camera_name" default="bluefox3"/>
   <arg name="frame_id" default="$(arg uav_name)/$(arg camera_name)"/>
   <arg name="calib_url" default="file://${ROS_HOME}/camera_info/$(arg camera_name).yaml"/>
@@ -16,7 +16,7 @@
 
       <rosparam file="$(find bluefox3)/config/bluefox3.yaml" />
 
-      <param name="camera_serial" type="string" value="$(arg camera_serial)"/>
+      <param name="camera_serial" type="string" value="$(arg serial)"/>
       <param name="camera_name" type="string" value="$(arg camera_name)"/>
       <param name="frame_id" type="string" value="$(arg frame_id)"/>
       <param name="calib_url" type="string" value="$(arg calib_url)"/>

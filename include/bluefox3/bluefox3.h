@@ -90,19 +90,19 @@ namespace bluefox3
     template <typename PropertyType>
     void writeProperty(const PropertyType& prop, typename PropertyType::value_type value);
     template <typename PropertyType>
-    void readProperty(const PropertyType& prop, typename PropertyType::value_type& value);
+    bool readProperty(const PropertyType& prop, typename PropertyType::value_type& value);
     template <typename PropertyType>
     void writeAndReadProperty(const PropertyType& prop, typename PropertyType::value_type& value);
     template <typename PropertyType>
     void writeDictProperty(const PropertyType& prop, const std::string& keystr);
     template <typename PropertyType>
-    void readDictProperty(const PropertyType& prop, std::string& key);
+    bool readDictProperty(const PropertyType& prop, std::string& key);
     template <typename PropertyType>
     void writeAndReadDictProperty(const PropertyType& prop, std::string& value);
 
   private:
     template <typename PropertyType>
-    void setMirrorMode(const PropertyType& prop, const bool TopDown, const bool LeftRight);
+    void setMirrorMode(const PropertyType& prop, bool& TopDown, bool& LeftRight);
     /* void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain); */
 
   private:
@@ -122,6 +122,7 @@ namespace bluefox3
 
     boost::recursive_mutex m_dynRecServer_mtx;
     std::shared_ptr<dynamic_reconfigure::Server<Bluefox3Config>> m_dynRecServer_ptr;
+    Bluefox3Config m_lastCfg;
   };
 
   //}
