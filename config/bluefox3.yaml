@@ -3,5 +3,6 @@ imgproc:
     mode: Off
 acquire:
   exposure:
-    # time: 100 # microseconds
-    AECMode: Continuous
+    # 100us is a good value for a sunny desert day
+    time: 100 # microseconds
+    AECMode: Off
