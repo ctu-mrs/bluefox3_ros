@@ -1,5 +1,7 @@
 # Bluefox3 ROS driver
 
+https://github.com/ctu-mrs/bluefox3_ros
+
 ## Description
 
 The driver is admittedly pretty bare-bones so far.
@@ -16,6 +18,10 @@ Pull-requests welcome!
 
 ## Prequisites
 
-The `mvIMPACT_Acquire` library corresponding to your camera is required to be installed and in present path (must be findable by CMake).
+The `mvIMPACT_Acquire` library corresponding to your camera is required to be installed and in present path (must be findable by CMake, installation instructions: https://www.matrix-vision.com/manuals/mvBlueFOX3/mvBC_page_quickstart.html#mvBC_subsubsection_quickstart_linux_requirements_installing).
 C++ standard >= `c++17` is required for compilation.
 Tested with ROS Melodic, but should work with older/newer versions as well.
+
+## Acknowledgements
+
+The code was inspired by the KumarRobotics driver for bluefox2: https://github.com/KumarRobotics/bluefox2.
