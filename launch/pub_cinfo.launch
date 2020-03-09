@@ -4,6 +4,6 @@
     <!-- <param name="flip_vertical" value="false" /> -->
     <param name="frame_id" value="/uav62/bluefox3_front" />
     <param name="publish_rate" value="1" />
-    <param name="camera_info_url" value="file:///$(find bluefox3)/config/calib/ost.yaml" />   <!-- relative to ~/.ros/ -->
+    <param name="camera_info_url" value="file:///$(find bluefox3)/config/calib/bluefox3_front.yaml" />   <!-- relative to ~/.ros/ -->
   </node>
 </launch>
