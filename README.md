@@ -17,5 +17,5 @@ Pull-requests welcome!
 ## Prequisites
 
 The `mvIMPACT_Acquire` library corresponding to your camera is required to be installed and in present path (must be findable by CMake).
-C++ standard > c++17 is required for compilation.
+C++ standard >= `c++17` is required for compilation.
 Tested with ROS Melodic, but should work with older/newer versions as well.
