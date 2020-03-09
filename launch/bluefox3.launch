@@ -17,16 +17,13 @@
   <arg name="proc" default="false"/>
 
   <!-- Standalone -->
-  <arg unless="$(arg plugin)"
-    name="option" value="standalone bluefox3/Bluefox3"/>
+  <arg unless="$(arg plugin)" name="option" value="standalone bluefox3/Bluefox3"/>
 
   <!-- Manager -->
-  <arg if="$(arg plugin)"
-    name="option" value="load bluefox3/Bluefox3 $(arg manager)"/>
+  <arg if="$(arg plugin)" name="option" value="load bluefox3/Bluefox3 $(arg manager)"/>
 
   <!-- Nodelet -->
-  <node pkg="nodelet" type="nodelet" name="$(arg camera_name)"
-    args="$(arg option)" output="$(arg output)" respawn="true" launch-prefix="$(arg launch_prefix)">
+  <node pkg="nodelet" type="nodelet" name="$(arg camera_name)" args="$(arg option)" output="$(arg output)" respawn="true" launch-prefix="$(arg launch_prefix)">
 
     <rosparam file="$(find bluefox3)/config/bluefox3.yaml" />
 

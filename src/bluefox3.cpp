@@ -1,4 +1,3 @@
-// clang: MatousFormat
 #include <bluefox3/bluefox3.h>
 
 namespace bluefox3
@@ -408,6 +407,7 @@ namespace bluefox3
   /* } */
   /* //} */
 
+  /* dynRecCallback() method //{ */
   void Bluefox3::dynRecCallback(bluefox3::Bluefox3Config& cfg, [[maybe_unused]] uint32_t level)
   {
     ROS_INFO("[%s]: Received dynamic reconfigure callback.", m_node_name.c_str());
@@ -415,6 +415,30 @@ namespace bluefox3
     writeAndReadDictProperty(m_GenICamACQ_ptr->exposureAuto, cfg.acq_exposure_AECMode);
     writeAndReadProperty(m_GenICamACQ_ptr->exposureTime, cfg.acq_exposure_time);
   }
+  //}
+
+  /* getParamCheck() method //{ */
+  template <typename T>
+  bool Bluefox3::getParamCheck(const ros::NodeHandle& nh, const std::string& param_name, T& param_out)
+  {
+    const bool res = nh.getParam(param_name, param_out);
+    if (!res)
+      ROS_ERROR_STREAM("[" << m_node_name << "]: Could not load compulsory parameter '" << param_name << "'");
+    else
+      ROS_INFO_STREAM("[" << m_node_name << "]: Loaded parameter '" << param_name << "': " << param_out);
+    return res;
+  }
+
+  template <typename T>
+  bool Bluefox3::getParamCheck(const ros::NodeHandle& nh, const std::string& param_name, T& param_out, const T& param_default)
+  {
+    const bool res = nh.getParam(param_name, param_out);
+    if (!res)
+      param_out = param_default;
+    ROS_INFO_STREAM("[" << m_node_name << "]: Loaded parameter '" << param_name << "': " << param_out);
+    return res;
+  }
+  //}
 
   /* onInit() //{ */
 
@@ -435,17 +459,32 @@ namespace bluefox3
 
     /* load parameters //{ */
 
-    mrs_lib::ParamLoader pl(nh, m_node_name);
+    bool success = true;
+    std::string camera_serial;
+    std::string camera_name;
+    std::string calib_url;
+    std::string imgproc_mirror_mode;
+    double      acq_exposure_time;
+    std::string acq_autoexp_mode;
 
-    const auto camera_serial = pl.load_param2<std::string>("camera_serial");
-    const auto camera_name = pl.load_param2<std::string>("camera_name");
-    const auto calib_url = pl.load_param2<std::string>("calib_url");
+    success = success && getParamCheck(nh, "camera_serial", camera_serial);
+    success = success && getParamCheck(nh, "camera_name", camera_name);
+    success = success && getParamCheck(nh, "calib_url", calib_url);
+    success = success && getParamCheck(nh, "frame_id", m_frame_id);
+    success = success && getParamCheck(nh, "frame_id", m_frame_id);
+
+    getParamCheck(nh, "imgproc/mirror/mode", imgproc_mirror_mode, std::string("Off"));
+    getParamCheck(nh, "acquire/exposure/time", acq_exposure_time, 100.0);
+    getParamCheck(nh, "acquire/exposure/AECMode", acq_autoexp_mode, std::string("Continuous"));
+
+    if (!success)
+    {
+      ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str());
+      ros::shutdown();
+      return;
+    }
+
     m_cinfoMgr_ptr = std::make_shared<camera_info_manager::CameraInfoManager>(nh, camera_name, calib_url);
-    m_frame_id = pl.load_param2<std::string>("frame_id");
-
-    const std::string imgproc_mirror_mode = pl.load_param2<std::string>("imgproc/mirror/mode", "Off");
-    const double      acq_exposure_time = pl.load_param2<double>("acquire/exposure/time", 100.0);
-    const std::string acq_autoexp_mode = pl.load_param2<std::string>("acquire/exposure/AECMode", "Continuous");
 
     Bluefox3Config cfg;
     cfg.mm_TopDown = imgproc_mirror_mode.find("TopDown") != std::string::npos;
@@ -453,13 +492,6 @@ namespace bluefox3
     cfg.acq_exposure_time = acq_exposure_time;
     cfg.acq_exposure_AECMode = acq_autoexp_mode;
     m_dynRecServer_ptr->updateConfig(cfg);
-
-    if (!pl.loaded_successfully())
-    {
-      ROS_ERROR("[%s]: Some compulsory parameters were not loaded successfully, ending the node", m_node_name.c_str());
-      ros::shutdown();
-      return;
-    }
 
     //}
 

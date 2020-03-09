@@ -17,10 +17,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 
-// MRS stuff
-#include <mrs_lib/ParamLoader.h>
-/* #include <mrs_lib/DynamicReconfigureMgr.h> */
-
 // Bluefox stuff
 #include <apps/Common/exampleHelper.h>
 #include <mvIMPACT_CPP/mvIMPACT_acquire.h>
@@ -87,6 +83,7 @@ namespace bluefox3
     std::string pixelFormatToEncoding(const PropertyIImageBufferPixelFormat& pixel_format);
     std::string bayerPatternToEncoding(const PropertyIBayerMosaicParity& bayer_pattern, int bytes_per_pixel);
 
+    // | -------------- Property manipulation methods ------------- |
     template <typename PropertyType>
     void writeProperty(const PropertyType& prop, typename PropertyType::value_type value);
     template <typename PropertyType>
@@ -106,8 +103,16 @@ namespace bluefox3
     /* void setWhiteBalance(const TWhiteBalanceParameter wbp, const double r_gain, const double g_gain, const double b_gain); */
 
   private:
+    // | --------------------- Helper methods --------------------- |
     void imageCallback(std::shared_ptr<Request> pRequest, std::shared_ptr<ThreadParameter> threadParameter_ptr);
+
     void dynRecCallback(bluefox3::Bluefox3Config& cfg, [[maybe_unused]] uint32_t level);
+
+    template <typename T>
+    bool getParamCheck(const ros::NodeHandle& nh, const std::string& param_name, T& param_out);
+
+    template <typename T>
+    bool getParamCheck(const ros::NodeHandle& nh, const std::string& param_name, T& param_out, const T& param_default);
 
   private:
     // --------------------------------------------------------------
